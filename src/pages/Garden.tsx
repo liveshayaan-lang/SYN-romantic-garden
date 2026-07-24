@@ -139,20 +139,10 @@ export default function Garden() {
     }
   };
 
-  useEffect(() => {
-    (window as any).duckMusic = (duck: boolean) => {
-      if (ytPlayerRef.current && isPlaying && !isMuted) {
-        // Duck to 10%, restore to 50%
-        ytPlayerRef.current.setVolume(duck ? 10 : 50);
-      }
-    };
-    return () => {
-      delete (window as any).duckMusic;
-    };
-  }, [isPlaying, isMuted]);
+  // duckMusic removed to prevent audio stuttering
 
-  const handlePlaySong = async (queryOverride?: string) => {
-    const rawQuery = queryOverride || songName;
+  const handlePlaySong = async (queryOverride?: string | React.MouseEvent) => {
+    const rawQuery = typeof queryOverride === 'string' ? queryOverride : songName;
     const query = rawQuery.trim() ? rawQuery : 'perfect ed sheeran';
     setIsSearchingSong(true);
     if (queryOverride) setSongName(queryOverride);

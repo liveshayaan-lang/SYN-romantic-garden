@@ -43,9 +43,6 @@ export function useVoiceCommand(
       (window as any)._voiceCommands = new Set();
 
       recognition.onresult = (event: any) => {
-        if (typeof window !== 'undefined' && (window as any).duckMusic) {
-          (window as any).duckMusic(false);
-        }
         const current = event.resultIndex;
         const transcript = event.results[current][0].transcript.trim().toLowerCase();
         console.log("Voice recognized:", transcript);
@@ -67,18 +64,12 @@ export function useVoiceCommand(
       };
 
       recognition.onspeechstart = () => {
-        if (typeof window !== 'undefined' && (window as any).duckMusic) {
-          (window as any).duckMusic(true);
-        }
         for (const hook of (window as any)._voiceCommands) {
           if (hook.onSpeechStartRef.current) hook.onSpeechStartRef.current();
         }
       };
 
       recognition.onspeechend = () => {
-        if (typeof window !== 'undefined' && (window as any).duckMusic) {
-          (window as any).duckMusic(false);
-        }
         for (const hook of (window as any)._voiceCommands) {
           if (hook.onSpeechEndRef.current) hook.onSpeechEndRef.current();
         }
@@ -86,9 +77,6 @@ export function useVoiceCommand(
 
       recognition.onerror = (event: any) => {
         console.error("Speech recognition error:", event.error);
-        if (typeof window !== 'undefined' && (window as any).duckMusic) {
-          (window as any).duckMusic(false);
-        }
       };
 
       recognition.onend = () => {
