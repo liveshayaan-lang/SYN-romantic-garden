@@ -1,7 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { CMatrix } from './CMatrix';
 
-const NUM_TEXT_PARTICLES = 2500;
+const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
+const NUM_TEXT_PARTICLES = isMobile ? 1200 : 2500;
 
 class Particle {
   x: number;
@@ -179,10 +180,15 @@ export function ParticleCountdown({ onComplete }: { onComplete?: () => void }) {
 
     render();
 
-    const s1 = setTimeout(() => prepareParticlesForText('3', '40vmin', false), 500);
-    const s2 = setTimeout(() => prepareParticlesForText('2', '40vmin', true), 1500);
-    const s3 = setTimeout(() => prepareParticlesForText('1', '40vmin', true), 2500);
+    const getFontSize = (baseSize: string, mobileSize: string) => {
+      return isMobile ? mobileSize : baseSize;
+    };
+
+    const s1 = setTimeout(() => prepareParticlesForText('3', getFontSize('40vmin', '70vw'), false), 500);
+    const s2 = setTimeout(() => prepareParticlesForText('2', getFontSize('40vmin', '70vw'), true), 1500);
+    const s3 = setTimeout(() => prepareParticlesForText('1', getFontSize('40vmin', '70vw'), true), 2500);
     const s4 = setTimeout(() => scatterParticles(), 3500); 
+    
     
     const s5 = setTimeout(() => setWord('Welcome'), 4500);
     const s6 = setTimeout(() => setWord('My'), 6500);

@@ -93,20 +93,30 @@ export default function Garden() {
 
   useEffect(() => {
     if (ytApiReady && currentVideoId && isPlaying) {
+      const isDirectId = /^[a-zA-Z0-9_-]{11}$/.test(currentVideoId);
+      
       if (!ytPlayerRef.current) {
+        const playerVars: any = {
+          autoplay: 1,
+          controls: 0,
+          disablekb: 1,
+          fs: 0,
+          origin: window.location.origin
+        };
+        
+        if (isDirectId) {
+          playerVars.loop = 1;
+          playerVars.playlist = currentVideoId;
+        } else {
+          playerVars.listType = 'search';
+          playerVars.list = currentVideoId;
+        }
+
         ytPlayerRef.current = new (window as any).YT.Player('hidden-yt-player', {
           height: '10',
           width: '10',
-          videoId: currentVideoId,
-          playerVars: {
-            autoplay: 1,
-            controls: 0,
-            disablekb: 1,
-            fs: 0,
-            loop: 1,
-            playlist: currentVideoId,
-            origin: window.location.origin
-          },
+          videoId: isDirectId ? currentVideoId : undefined,
+          playerVars,
           events: {
             onReady: (event: any) => {
               event.target.setVolume(50);
@@ -114,11 +124,29 @@ export default function Garden() {
                 event.target.mute();
               }
               event.target.playVideo();
+            },
+            onStateChange: (event: any) => {
+              if (event.data === 0) {
+                 event.target.playVideo();
+              }
+            },
+            onError: (event: any) => {
+              console.error("YT Player Error:", event.data);
+              if (!isDirectId) {
+                event.target.loadVideoById('2Vv-BfVoq4g');
+              }
             }
           }
         });
       } else {
-        ytPlayerRef.current.loadVideoById(currentVideoId);
+        if (isDirectId) {
+          ytPlayerRef.current.loadVideoById(currentVideoId);
+        } else {
+          ytPlayerRef.current.loadPlaylist({
+            list: currentVideoId,
+            listType: 'search'
+          });
+        }
         if (isMuted) {
           ytPlayerRef.current.mute();
         } else {
@@ -151,26 +179,8 @@ export default function Garden() {
     const ytMatch = query.match(/(?:youtu\.be\/|youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/);
     if (ytMatch && ytMatch[1]) {
       setCurrentVideoId(ytMatch[1]);
-      setIsSearchingSong(false);
-      setIsPlaying(true);
-      setShowSongPrompt(false);
-      setShowButton(true);
-      return;
-    }
-    
-    try {
-      const searchUrl = 'https://www.youtube.com/results?search_query=' + encodeURIComponent(query);
-      const res = await fetch('https://api.allorigins.win/get?url=' + encodeURIComponent(searchUrl));
-      if (!res.ok) throw new Error('API failed');
-      const data = await res.json();
-      const match = data.contents ? data.contents.match(/"videoId":"([a-zA-Z0-9_-]{11})"/) : null;
-      if (match && match[1]) {
-        setCurrentVideoId(match[1]);
-      } else {
-        setCurrentVideoId('2Vv-BfVoq4g');
-      }
-    } catch (e) {
-      setCurrentVideoId('2Vv-BfVoq4g');
+    } else {
+      setCurrentVideoId(query);
     }
     
     setIsSearchingSong(false);
