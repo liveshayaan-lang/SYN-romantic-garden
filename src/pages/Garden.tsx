@@ -169,11 +169,13 @@ export default function Garden() {
     }
     
     try {
-      const res = await fetch(`/api/search?q=${encodeURIComponent(query)}`);
+      const searchUrl = 'https://www.youtube.com/results?search_query=' + encodeURIComponent(query);
+      const res = await fetch('https://api.allorigins.win/get?url=' + encodeURIComponent(searchUrl));
       if (!res.ok) throw new Error('API failed');
       const data = await res.json();
-      if (data && data.videoId) {
-        setCurrentVideoId(data.videoId);
+      const match = data.contents ? data.contents.match(/"videoId":"([a-zA-Z0-9_-]{11})"/) : null;
+      if (match && match[1]) {
+        setCurrentVideoId(match[1]);
       } else {
         setCurrentVideoId('2Vv-BfVoq4g');
       }
