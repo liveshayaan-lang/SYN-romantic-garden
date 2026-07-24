@@ -101,10 +101,23 @@ export function useVoiceCommand(
         }
       };
 
-      try {
-        recognition.start();
-      } catch (e) {
-        // ignore
+      const startRec = () => {
+        try {
+          recognition.start();
+        } catch (e) {}
+      };
+
+      if ((window as any)._hasInteracted) {
+        startRec();
+      } else {
+        const unlock = () => {
+          (window as any)._hasInteracted = true;
+          startRec();
+          document.removeEventListener('click', unlock);
+          document.removeEventListener('touchstart', unlock);
+        };
+        document.addEventListener('click', unlock);
+        document.addEventListener('touchstart', unlock);
       }
     }
 
