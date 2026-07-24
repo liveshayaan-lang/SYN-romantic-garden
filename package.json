@@ -12,6 +12,7 @@
     "deploy": "gh-pages -d dist"
   },
   "devDependencies": {
+    "@capacitor/cli": "^8.4.2",
     "@hookform/resolvers": "^3.10.0",
     "@radix-ui/react-accordion": "^1.2.4",
     "@radix-ui/react-alert-dialog": "^1.1.7",
@@ -74,6 +75,12 @@
     "zod": "latest"
   },
   "dependencies": {
-    "gsap": "^3.15.0"
+    "@capacitor/android": "^8.4.2",
+    "@capacitor/core": "^8.4.2",
+    "cobe": "^2.0.1",
+    "fs-extra": "^11.4.0",
+    "gsap": "^3.15.0",
+    "react-globe.gl": "^2.38.0",
+    "three": "^0.185.1"
   }
 }

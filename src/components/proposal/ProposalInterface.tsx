@@ -2,12 +2,15 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FloatingHearts } from './FloatingHearts';
 import { StickmanBattle } from './StickmanBattle';
+import { EarthDate } from './EarthDate';
+import { useVoiceCommand } from '@/hooks/useVoiceCommand';
 
-export function ProposalInterface() {
+export function ProposalInterface({ visitorGender = 'female' }: { visitorGender?: 'male' | 'female' }) {
   const [noPosition, setNoPosition] = useState({ x: 0, y: 0 });
   const [accepted, setAccepted] = useState(false);
   const [showProtectPrompt, setShowProtectPrompt] = useState(false);
   const [showBattle, setShowBattle] = useState(false);
+  const [showEarthDate, setShowEarthDate] = useState(false);
 
   useEffect(() => {
     if (accepted) {
@@ -27,8 +30,19 @@ export function ProposalInterface() {
     setNoPosition({ x: randomX, y: randomY });
   };
 
+  useVoiceCommand({
+    "yes": () => { if (!accepted) setAccepted(true); },
+    "i will": () => { if (!accepted) setAccepted(true); },
+    "no": () => { if (!accepted) handleNoHover(); },
+    "show me": () => { if (showProtectPrompt) setShowBattle(true); },
+  });
+
+  if (showEarthDate) {
+    return <EarthDate />;
+  }
+
   if (showBattle) {
-    return <StickmanBattle />;
+    return <StickmanBattle visitorGender={visitorGender} onComplete={() => setShowEarthDate(true)} />;
   }
 
   return (
@@ -74,7 +88,7 @@ export function ProposalInterface() {
             </p>
 
             <h2 className="text-3xl md:text-4xl text-white mb-10 italic">
-              Will you marry me?
+              Would you like to spend the rest of your life with me?
             </h2>
 
             <div className="flex flex-row items-center justify-center gap-4 md:gap-8 relative z-20">

@@ -1,11 +1,13 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { CMatrix } from './CMatrix';
 
-const NUM_TEXT_PARTICLES = 1500;
+const NUM_TEXT_PARTICLES = 2500;
 
 class Particle {
   x: number;
   y: number;
+  tx: number;
+  ty: number;
   vx: number;
   vy: number;
   color: string;
@@ -15,10 +17,12 @@ class Particle {
   isVisible: boolean;
 
   constructor(w: number, h: number) {
-    this.x = w / 2;
-    this.y = h / 2;
-    this.vx = 0;
-    this.vy = 0;
+    this.x = w / 2 + (Math.random() - 0.5) * 50;
+    this.y = h / 2 + (Math.random() - 0.5) * 50;
+    this.tx = this.x;
+    this.ty = this.y;
+    this.vx = (Math.random() - 0.5) * 20;
+    this.vy = (Math.random() - 0.5) * 20;
     this.isActive = true;
     this.isVisible = false;
     this.color = '#ffffff';
@@ -33,15 +37,25 @@ class Particle {
       this.x += this.vx;
       this.y += this.vy;
       
-      // Gradually slow down
-      this.vx *= 0.95;
-      this.vy *= 0.95;
+      this.vx *= 0.96;
+      this.vy *= 0.96;
       
-      // Fade out effect by shrinking
-      this.radius *= 0.96;
+      this.radius *= 0.95;
       if (this.radius < 0.1) {
           this.isActive = false;
       }
+    } else {
+      const dx = this.tx - this.x;
+      const dy = this.ty - this.y;
+      
+      this.vx += dx * 0.08;
+      this.vy += dy * 0.08;
+      
+      this.vx *= 0.75;
+      this.vy *= 0.75;
+      
+      this.x += this.vx;
+      this.y += this.vy;
     }
   }
 
@@ -50,28 +64,35 @@ class Particle {
     ctx.beginPath();
     ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
     ctx.fillStyle = this.color;
-    // Add glow
-    ctx.shadowBlur = 10;
+    ctx.shadowBlur = 15;
     ctx.shadowColor = '#ff5e6c';
     ctx.fill();
     ctx.shadowBlur = 0;
+  }
+
+  setTarget(tx: number, ty: number) {
+    this.isVisible = true;
+    this.tx = tx;
+    this.ty = ty;
+  }
+
+  explodeSlightly() {
+    this.vx += (Math.random() - 0.5) * 80;
+    this.vy += (Math.random() - 0.5) * 80;
   }
 
   scatter(w: number, h: number) {
     this.isScattering = true;
     this.isVisible = true;
     
-    // Calculate distance from center to make explosion more dynamic
     const dx = this.x - w/2;
     const dy = this.y - h/2;
     const dist = Math.sqrt(dx*dx + dy*dy) || 1;
     
-    // Add some randomness and directional force
-    this.vx = (dx / dist) * (Math.random() * 30 + 10) + (Math.random() - 0.5) * 15;
-    this.vy = (dy / dist) * (Math.random() * 30 + 10) + (Math.random() - 0.5) * 15;
+    this.vx = (dx / dist) * (Math.random() * 40 + 10) + (Math.random() - 0.5) * 20;
+    this.vy = (dy / dist) * (Math.random() * 40 + 10) + (Math.random() - 0.5) * 20;
     
-    // Sometimes make them pinkish for variation
-    if (Math.random() > 0.7) {
+    if (Math.random() > 0.6) {
         this.color = '#ff5e6c';
     }
   }
@@ -80,7 +101,6 @@ class Particle {
 export function ParticleCountdown({ onComplete }: { onComplete?: () => void }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [word, setWord] = useState<string | null>(null);
-  const [countdownWord, setCountdownWord] = useState<string | null>(null);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -125,18 +145,17 @@ export function ParticleCountdown({ onComplete }: { onComplete?: () => void }) {
       return pixels;
     };
 
-    const prepareParticlesForText = (text: string, fontSize: string = '35vmin') => {
+    const prepareParticlesForText = (text: string, fontSize: string = '35vmin', scatterFirst = false) => {
       const pixels = getTextPixels(text, fontSize);
       if (pixels.length === 0) return;
       
-      let pixelIdx = 0;
       for (let i = 0; i < particles.length; i++) {
         const p = particles[i];
-        const target = pixels[pixelIdx % pixels.length];
-        // Instantly snap them into the shape of the text
-        p.x = target.x + (Math.random() - 0.5) * 8;
-        p.y = target.y + (Math.random() - 0.5) * 8;
-        pixelIdx++;
+        if (scatterFirst) {
+          p.explodeSlightly();
+        }
+        const target = pixels[Math.floor(Math.random() * pixels.length)];
+        p.setTarget(target.x + (Math.random() - 0.5) * 6, target.y + (Math.random() - 0.5) * 6);
       }
     };
 
@@ -160,18 +179,10 @@ export function ParticleCountdown({ onComplete }: { onComplete?: () => void }) {
 
     render();
 
-    // Sequence: 3 -> 2 -> 1 -> explode '1' into particles -> Welcome -> My -> Love
-    const s1 = setTimeout(() => setCountdownWord('3'), 500);
-    const s2 = setTimeout(() => setCountdownWord('2'), 1500);
-    const s3 = setTimeout(() => {
-        setCountdownWord('1');
-        // Secretly shape the particles like '1' in the background
-        prepareParticlesForText('1', '35vmin');
-    }, 2500);
-    const s4 = setTimeout(() => {
-        setCountdownWord(null);
-        scatterParticles();
-    }, 3500); 
+    const s1 = setTimeout(() => prepareParticlesForText('3', '40vmin', false), 500);
+    const s2 = setTimeout(() => prepareParticlesForText('2', '40vmin', true), 1500);
+    const s3 = setTimeout(() => prepareParticlesForText('1', '40vmin', true), 2500);
+    const s4 = setTimeout(() => scatterParticles(), 3500); 
     
     const s5 = setTimeout(() => setWord('Welcome'), 4500);
     const s6 = setTimeout(() => setWord('My'), 6500);
@@ -203,21 +214,6 @@ export function ParticleCountdown({ onComplete }: { onComplete?: () => void }) {
       <CMatrix />
       <canvas ref={canvasRef} className="absolute inset-0 z-10" />
       
-      {/* HTML Countdown Text (3, 2, 1) */}
-      {countdownWord !== null && (
-        <div 
-          key={`cd-${countdownWord}`} 
-          className="absolute z-20 text-pink-300 font-serif font-bold tracking-widest text-center text-[35vmin]"
-          style={{
-            textShadow: '0 0 20px #ff5e6c, 0 0 40px #ff2a40, 0 0 60px #ff1493',
-            animation: 'countdownZoom 1s ease-in-out forwards'
-          }}
-        >
-          {countdownWord}
-        </div>
-      )}
-
-      {/* Normal Text Words (Welcome, My, Love) */}
       {word !== null && (
         <div 
           key={`word-${word}`} 
@@ -227,7 +223,7 @@ export function ParticleCountdown({ onComplete }: { onComplete?: () => void }) {
           style={{
             textShadow: '0 0 20px #ff5e6c, 0 0 40px #ff2a40, 0 0 60px #ff1493',
             animation: word === 'Love' 
-               ? 'twirlLeftRight 3s ease-in-out forwards' 
+               ? 'loveReveal 3.5s ease-out forwards' 
                : word === 'Welcome' || word === 'My'
                ? 'wordFade 2s ease-in-out forwards'
                : 'wordFade 1s ease-in-out forwards'
@@ -242,24 +238,18 @@ export function ParticleCountdown({ onComplete }: { onComplete?: () => void }) {
           0% { background-color: transparent; }
           100% { background-color: black; }
         }
-        @keyframes countdownZoom {
-          0% { opacity: 0; filter: blur(20px); transform: scale(0.3); }
-          20% { opacity: 1; filter: blur(0px); transform: scale(1); }
-          80% { opacity: 1; filter: blur(0px); transform: scale(1.1); }
-          100% { opacity: 0; filter: blur(10px); transform: scale(1.5); }
-        }
         @keyframes wordFade {
           0% { opacity: 0; filter: blur(10px); transform: scale(0.9); }
           20% { opacity: 1; filter: blur(0px); transform: scale(1); }
           80% { opacity: 1; filter: blur(0px); transform: scale(1); }
           100% { opacity: 0; filter: blur(10px); transform: scale(1.1); }
         }
-        @keyframes twirlLeftRight {
-          0% { opacity: 0; transform: translateX(-150px) rotate(-15deg) scale(0.8); }
-          25% { opacity: 1; transform: translateX(-50px) rotate(10deg) scale(1.2); }
-          50% { opacity: 1; transform: translateX(0px) rotate(-10deg) scale(1.2); }
-          75% { opacity: 1; transform: translateX(50px) rotate(10deg) scale(1.2); }
-          100% { opacity: 0; transform: translateX(150px) rotate(-15deg) scale(0.8); }
+        @keyframes loveReveal {
+          0% { opacity: 0; filter: blur(15px); transform: scale(0.6) translateY(20px); }
+          20% { opacity: 1; filter: blur(0px); transform: scale(1.1) translateY(0px); }
+          35% { opacity: 1; transform: scale(1); }
+          75% { opacity: 1; transform: scale(1.05); }
+          100% { opacity: 0; filter: blur(10px); transform: scale(1.2); }
         }
       `}</style>
     </div>

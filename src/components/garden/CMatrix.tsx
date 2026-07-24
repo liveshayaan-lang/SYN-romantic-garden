@@ -14,23 +14,22 @@ export function CMatrix() {
     canvas.width = width;
     canvas.height = height;
 
-    // A mix of katakana and latin characters for a more authentic matrix feel
     const chars = 'ｱｲｳｴｵｶｷｸｹｺｻｼｽｾｿﾀﾁﾂﾃﾄﾅﾆﾇﾈﾉﾊﾋﾌﾍﾎﾏﾐﾑﾒﾓﾔﾕﾖﾗﾘﾙﾚﾛﾜﾝ0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
-    const fontSize = 16;
+    const fontSize = 12; // Smaller font size for more quantity
     const columns = Math.floor(width / fontSize);
     const drops: number[] = [];
     
-    // Create an array to store the characters for each drop to make them stable
     const dropChars: string[][] = [];
 
+    // Increase initial drops so it's dense
     for (let x = 0; x < columns; x++) {
-      drops[x] = Math.random() * -100; // start at random positions above screen
+      drops[x] = Math.random() * -100; 
       dropChars[x] = [];
     }
 
     let animationFrameId: number;
     let lastDrawTime = 0;
-    const fps = 30;
+    const fps = 45; // slightly faster for more dynamic matrix
     const interval = 1000 / fps;
 
     const draw = (currentTime: number) => {
@@ -40,15 +39,30 @@ export function CMatrix() {
       lastDrawTime = currentTime;
 
       // Dark translucent background for trail effect
-      ctx.fillStyle = 'rgba(0, 0, 0, 0.15)';
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.1)';
       ctx.fillRect(0, 0, width, height);
 
       ctx.font = `${fontSize}px "Courier New", monospace`;
 
+      const cx = width / 2;
+      const cy = height / 2;
+      const avoidanceRadius = 300;
+
+      const getRenderX = (origX: number, currY: number) => {
+          const dx = origX - cx;
+          const dy = currY - cy;
+          const dist = Math.sqrt(dx*dx + dy*dy);
+          if (dist < avoidanceRadius) {
+              // Create a smooth curve force
+              const force = Math.pow((avoidanceRadius - dist) / avoidanceRadius, 1.5);
+              return origX + (dx >= 0 ? 1 : -1) * force * 150;
+          }
+          return origX;
+      };
+
       for (let i = 0; i < drops.length; i++) {
-        // Only start dropping if y > 0, to stagger the start
         if (drops[i] < 0) {
-          drops[i]++;
+          drops[i] += 0.5; // fall slightly slower initially to build density
           continue;
         }
 
@@ -56,41 +70,28 @@ export function CMatrix() {
         const x = i * fontSize;
         const y = drops[i] * fontSize;
 
-        // Draw the text
-        // Use a bright white/pink for the leading character
-        ctx.fillStyle = '#FFFFFF';
-        ctx.shadowBlur = 15;
-        ctx.shadowColor = '#FF1493';
-        ctx.fillText(text, x, y);
+        const renderX = getRenderX(x, y);
 
-        // Remove shadow for the previous characters so it doesn't get overwhelmingly bright
+        ctx.fillStyle = '#FFFFFF';
+        ctx.shadowBlur = 10;
+        ctx.shadowColor = '#FF1493';
+        ctx.fillText(text, renderX, y);
+
         ctx.shadowBlur = 0;
         
-        // Redraw the previous character in pink to replace the white leading character
         if (dropChars[i].length > 0) {
            ctx.fillStyle = '#FF1493';
-           ctx.fillText(dropChars[i][dropChars[i].length - 1], x, y - fontSize);
+           const prevY = y - fontSize;
+           const prevRenderX = getRenderX(x, prevY);
+           ctx.fillText(dropChars[i][dropChars[i].length - 1], prevRenderX, prevY);
         }
+        
         dropChars[i].push(text);
         if (dropChars[i].length > height / fontSize) {
             dropChars[i].shift();
         }
 
-        // Avoid center area
-        const cx = width / 2;
-        const cy = height / 2;
-        const dx = x - cx;
-        const dy = y - cy;
-        const dist = Math.sqrt(dx*dx + dy*dy);
-        
-        const avoidanceRadius = 200;
-        if (dist < avoidanceRadius) {
-           // Skip drawing if it's too close to the center to keep it clean for countdown
-           ctx.fillStyle = 'black';
-           ctx.fillRect(x, y - fontSize, fontSize, fontSize * 2);
-        }
-
-        if (y > height && Math.random() > 0.975) {
+        if (y > height && Math.random() > 0.95) {
           drops[i] = 0;
           dropChars[i] = [];
         }
@@ -119,5 +120,5 @@ export function CMatrix() {
     };
   }, []);
 
-  return <canvas ref={canvasRef} className="absolute inset-0 pointer-events-none opacity-60 z-0" />;
+  return <canvas ref={canvasRef} className="absolute inset-0 pointer-events-none opacity-80 z-0" />;
 }
