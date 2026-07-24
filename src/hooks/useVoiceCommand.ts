@@ -9,16 +9,22 @@ declare global {
 
 export function useVoiceCommand(
   commands: Record<string, (transcript: string) => void>,
-  onAnySpeech?: (transcript: string, matchedCommand: boolean) => void
+  onAnySpeech?: (transcript: string, matchedCommand: boolean) => void,
+  onSpeechStart?: () => void,
+  onSpeechEnd?: () => void
 ) {
   const commandsRef = useRef(commands);
   const onAnySpeechRef = useRef(onAnySpeech);
+  const onSpeechStartRef = useRef(onSpeechStart);
+  const onSpeechEndRef = useRef(onSpeechEnd);
 
   // Keep ref updated to avoid restarting the speech recognition when dependencies change
   useEffect(() => {
     commandsRef.current = commands;
     onAnySpeechRef.current = onAnySpeech;
-  }, [commands, onAnySpeech]);
+    onSpeechStartRef.current = onSpeechStart;
+    onSpeechEndRef.current = onSpeechEnd;
+  }, [commands, onAnySpeech, onSpeechStart, onSpeechEnd]);
 
   useEffect(() => {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -27,55 +33,94 @@ export function useVoiceCommand(
       return;
     }
 
-    const recognition = new SpeechRecognition();
-    recognition.continuous = true;
-    recognition.interimResults = false;
-    recognition.lang = 'en-US';
+    if (!(window as any)._globalSpeechRecognition) {
+      const recognition = new SpeechRecognition();
+      recognition.continuous = true;
+      recognition.interimResults = false;
+      recognition.lang = 'en-US';
 
-    recognition.onresult = (event: any) => {
-      const current = event.resultIndex;
-      const transcript = event.results[current][0].transcript.trim().toLowerCase();
-      console.log("Voice recognized:", transcript);
-      
-      // Match spoken words with command keys
-      let matched = false;
-      for (const [key, callback] of Object.entries(commandsRef.current)) {
-        if (transcript.includes(key.toLowerCase())) {
-          callback(transcript);
-          matched = true;
-          // We don't break early so multiple actions could theoretically trigger, 
-          // but mostly it's just finding the first matched keyword.
+      (window as any)._globalSpeechRecognition = recognition;
+      (window as any)._voiceCommands = new Set();
+
+      recognition.onresult = (event: any) => {
+        if (typeof window !== 'undefined' && (window as any).duckMusic) {
+          (window as any).duckMusic(false);
         }
-      }
-      
-      if (onAnySpeechRef.current) {
-        onAnySpeechRef.current(transcript, matched);
-      }
-    };
+        const current = event.resultIndex;
+        const transcript = event.results[current][0].transcript.trim().toLowerCase();
+        console.log("Voice recognized:", transcript);
+        
+        let matched = false;
+        // Iterate through all registered command hooks
+        for (const hook of (window as any)._voiceCommands) {
+          const { commandsRef, onAnySpeechRef } = hook;
+          for (const [key, callback] of Object.entries(commandsRef.current as Record<string, Function>)) {
+            if (transcript.includes(key.toLowerCase())) {
+              callback(transcript);
+              matched = true;
+            }
+          }
+          if (onAnySpeechRef.current) {
+            (onAnySpeechRef.current as Function)(transcript, matched);
+          }
+        }
+      };
 
-    recognition.onerror = (event: any) => {
-      console.error("Speech recognition error:", event.error);
-    };
+      recognition.onspeechstart = () => {
+        if (typeof window !== 'undefined' && (window as any).duckMusic) {
+          (window as any).duckMusic(true);
+        }
+        for (const hook of (window as any)._voiceCommands) {
+          if (hook.onSpeechStartRef.current) hook.onSpeechStartRef.current();
+        }
+      };
 
-    // Auto-restart to continuously listen
-    recognition.onend = () => {
+      recognition.onspeechend = () => {
+        if (typeof window !== 'undefined' && (window as any).duckMusic) {
+          (window as any).duckMusic(false);
+        }
+        for (const hook of (window as any)._voiceCommands) {
+          if (hook.onSpeechEndRef.current) hook.onSpeechEndRef.current();
+        }
+      };
+
+      recognition.onerror = (event: any) => {
+        console.error("Speech recognition error:", event.error);
+        if (typeof window !== 'undefined' && (window as any).duckMusic) {
+          (window as any).duckMusic(false);
+        }
+      };
+
+      recognition.onend = () => {
+        try {
+          if ((window as any)._voiceCommands.size > 0) {
+            recognition.start();
+          }
+        } catch (e) {
+          // ignore
+        }
+      };
+
       try {
         recognition.start();
       } catch (e) {
         // ignore
       }
-    };
-
-    // Start listening as soon as component mounts (prompts user for permission)
-    try {
-      recognition.start();
-    } catch (e) {
-      // ignore
     }
 
+    const hookData = { commandsRef, onAnySpeechRef, onSpeechStartRef, onSpeechEndRef };
+    (window as any)._voiceCommands.add(hookData);
+
     return () => {
-      recognition.onend = null;
-      recognition.stop();
+      (window as any)._voiceCommands.delete(hookData);
+      if ((window as any)._voiceCommands.size === 0) {
+        if ((window as any)._globalSpeechRecognition) {
+          const rec = (window as any)._globalSpeechRecognition;
+          rec.onend = null;
+          rec.stop();
+          (window as any)._globalSpeechRecognition = null;
+        }
+      }
     };
   }, []);
 }

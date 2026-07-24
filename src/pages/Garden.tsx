@@ -58,6 +58,8 @@ export default function Garden() {
   const [showProposal, setShowProposal] = useState(false);
   const [showGenderPrompt, setShowGenderPrompt] = useState(false);
   const [visitorGender, setVisitorGender] = useState<'male' | 'female' | null>(null);
+  const [songCommandLocked, setSongCommandLocked] = useState(false);
+  const [showOwner, setShowOwner] = useState(false);
 
   const [showSongPrompt, setShowSongPrompt] = useState(false);
   const [songName, setSongName] = useState('');
@@ -137,6 +139,18 @@ export default function Garden() {
     }
   };
 
+  useEffect(() => {
+    (window as any).duckMusic = (duck: boolean) => {
+      if (ytPlayerRef.current && isPlaying && !isMuted) {
+        // Duck to 10%, restore to 50%
+        ytPlayerRef.current.setVolume(duck ? 10 : 50);
+      }
+    };
+    return () => {
+      delete (window as any).duckMusic;
+    };
+  }, [isPlaying, isMuted]);
+
   const handlePlaySong = async (queryOverride?: string) => {
     const rawQuery = queryOverride || songName;
     const query = rawQuery.trim() ? rawQuery : 'perfect ed sheeran';
@@ -207,9 +221,33 @@ export default function Garden() {
 
   // Voice Commands
   useVoiceCommand({
+    "restart the website": () => { window.location.reload(); },
+    "owner": () => { setShowOwner(true); },
+    "close owner": () => { setShowOwner(false); },
+    "lock the song change command": () => { setSongCommandLocked(true); },
+    "lock song change": () => { setSongCommandLocked(true); },
+    "unlock the song change command": () => { setSongCommandLocked(false); },
+    "unlock song command": () => { setSongCommandLocked(false); },
+    "unlock song change": () => { setSongCommandLocked(false); },
+    "unlock": () => { setSongCommandLocked(false); },
     "play": (t) => { 
       if (showSongPrompt && !isSearchingSong) {
         handlePlaySong(t.replace("play", "").trim());
+      } else if (!songCommandLocked && !isSearchingSong && !showSongPrompt) {
+        const query = t.replace("play", "").trim();
+        if (query) handlePlaySong(query);
+      }
+    },
+    "change song": (t) => {
+      if (!songCommandLocked && !isSearchingSong) {
+        const query = t.replace("change song", "").replace("to", "").trim();
+        if (query) handlePlaySong(query);
+      }
+    },
+    "change the song": (t) => {
+      if (!songCommandLocked && !isSearchingSong) {
+        const query = t.replace("change the song", "").replace("to", "").trim();
+        if (query) handlePlaySong(query);
       }
     },
     "continue": () => { if (showSongPrompt && !isSearchingSong) handlePlaySong(); },
@@ -471,6 +509,47 @@ export default function Garden() {
 
       {/* Spider Clock (Shows after clicking enter) */}
       {isStorming && <SpiderClock />}
+
+      {/* Owner Info Modal */}
+      {showOwner && (
+        <motion.div 
+          className="absolute inset-0 z-[200] flex flex-col items-center justify-center pointer-events-auto bg-black/80 backdrop-blur-md p-4"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+        >
+          <div className="relative max-w-2xl w-full bg-[#160408]/90 border border-pink-500/30 p-6 md:p-8 rounded-3xl shadow-[0_0_40px_rgba(255,20,80,0.4)] flex flex-col items-center text-center">
+            <button 
+              onClick={() => setShowOwner(false)}
+              className="absolute top-4 right-4 text-white/50 hover:text-white transition-colors"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+            <h2 className="text-3xl md:text-4xl text-white font-serif mb-6" style={{ textShadow: '0 0 15px rgba(255, 100, 150, 0.5)' }}>
+              Meet the Owner
+            </h2>
+            <img 
+              src="https://i.postimg.cc/3w9R697R/d5b826a1-ddc5-40ee-9581-51697f1bca73.jpg" 
+              alt="Website Owner" 
+              className="w-full max-h-[50vh] object-contain rounded-xl mb-6 shadow-2xl"
+            />
+            <p className="text-pink-100 font-serif text-lg md:text-xl mb-4">
+              This is the owner of the website.
+            </p>
+            <p className="text-gray-300 font-serif text-base md:text-lg mb-8 leading-relaxed">
+              If you want to explore more of their websites and artworks, you can click the link below to download their APK.
+            </p>
+            <a 
+              href="#" 
+              onClick={(e) => e.preventDefault()}
+              className="px-8 py-3 md:py-4 bg-pink-600 hover:bg-pink-500 text-white font-serif text-lg rounded-xl transition-all hover:scale-105 active:scale-95 shadow-[0_0_20px_rgba(255,20,80,0.4)] inline-block"
+            >
+              Download APK
+            </a>
+          </div>
+        </motion.div>
+      )}
     </div>
   );
 }

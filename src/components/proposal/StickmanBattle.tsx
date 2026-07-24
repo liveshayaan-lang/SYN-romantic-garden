@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { useVoiceCommand } from '@/hooks/useVoiceCommand';
 
 let audioCtx: AudioContext | null = null;
 const initAudio = () => {
@@ -107,6 +108,17 @@ export function StickmanBattle({ onComplete, visitorGender = 'female' }: { onCom
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [phase, setPhase] = useState<number>(1);
   const [endingTextPhase, setEndingTextPhase] = useState(0);
+  const triggerUltimateRef = useRef(false);
+
+  useVoiceCommand({
+    "baby inki": () => { triggerUltimateRef.current = true; },
+    "baby inko": () => { triggerUltimateRef.current = true; },
+    "baby maar": () => { triggerUltimateRef.current = true; },
+    "baby maaro": () => { triggerUltimateRef.current = true; },
+    "baby bachao": () => { triggerUltimateRef.current = true; },
+    "bachao mujhe": () => { triggerUltimateRef.current = true; },
+    "maar do inko": () => { triggerUltimateRef.current = true; }
+  });
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -598,6 +610,13 @@ export function StickmanBattle({ onComplete, visitorGender = 'female' }: { onCom
 
       frameCount++;
 
+      if (triggerUltimateRef.current) {
+        if (frameCount < 650) {
+          frameCount = 649;
+        }
+        triggerUltimateRef.current = false;
+      }
+
       // Phase 1: Normal combat (0 - 300)
       if (frameCount < 300) {
         if (frameCount % 15 === 0) spawnEnemy();
@@ -755,7 +774,7 @@ export function StickmanBattle({ onComplete, visitorGender = 'female' }: { onCom
         if (frameCount === 1200) {
           setEndingTextPhase(3);
         }
-        
+
         if (frameCount === 1500) {
           if (onComplete) onComplete();
         }
