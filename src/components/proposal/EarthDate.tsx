@@ -436,7 +436,17 @@ export function EarthDate() {
                 return (
                   <div 
                     key={idx} 
-                    onClick={() => setSelectedPlace(place)}
+                    onClick={() => {
+                      setSelectedPlace(place);
+                      if (!isConfirming) {
+                        if (selectedLocation.isSpecial) {
+                          setSubmitSuccess(true);
+                          setIsConfirming(true);
+                        } else {
+                          setIsConfirming(true);
+                        }
+                      }
+                    }}
                     className={`group relative rounded-xl overflow-hidden shadow-2xl border-2 transition-all cursor-pointer ${
                       isSelected ? 'border-[#00FFFF] shadow-[0_0_15px_rgba(0,255,255,0.5)] scale-[1.02]' : 'border-white/10 hover:border-white/40'
                     }`}
@@ -469,23 +479,7 @@ export function EarthDate() {
             </div>
 
             <AnimatePresence mode="wait">
-              {!isConfirming ? (
-                <motion.button 
-                  key="btn-confirm"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  onClick={confirmSelection}
-                  disabled={!selectedPlace}
-                  className={`mt-8 w-full py-4 rounded-full font-bold text-lg transition-all ${
-                    selectedPlace 
-                      ? "bg-gradient-to-r from-[#ff2a40] to-[#ff5e6c] text-white hover:scale-105 active:scale-95 shadow-[0_0_20px_rgba(255,42,64,0.5)] cursor-pointer" 
-                      : "bg-white/10 text-white/40 cursor-not-allowed"
-                  }`}
-                >
-                  {selectedPlace ? (selectedLocation.isSpecial ? "Go there! ❤️" : "Let's go here! ❤️") : "Please select a place"}
-                </motion.button>
-              ) : submitSuccess ? (
+              {submitSuccess ? (
                 <motion.div
                   key="success"
                   initial={{ opacity: 0, scale: 0.8 }}
