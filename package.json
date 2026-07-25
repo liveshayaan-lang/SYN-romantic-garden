@@ -77,10 +77,13 @@
   "dependencies": {
     "@capacitor/android": "^8.4.2",
     "@capacitor/core": "^8.4.2",
+    "@mediapipe/hands": "^0.4.1675469240",
     "cobe": "^2.0.1",
     "fs-extra": "^11.4.0",
     "gsap": "^3.15.0",
+    "react-error-boundary": "^6.1.2",
     "react-globe.gl": "^2.38.0",
-    "three": "^0.185.1"
+    "three": "^0.185.1",
+    "three-stdlib": "^2.36.1"
   }
 }

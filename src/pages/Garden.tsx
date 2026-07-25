@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { FlowerBouquet } from '@/components/garden/FlowerBouquet';
 import { GrassField } from '@/components/garden/GrassField';
 import { MessageBubble } from '@/components/garden/MessageBubble';
@@ -49,6 +49,8 @@ const WindLines = ({ active }: { active: boolean }) => {
   );
 };
 
+// YouTube system removed by user request
+
 export default function Garden() {
   const [mousePos, setMousePos] = useState({ x: 0.5, y: 0.5 });
   const [bounds, setBounds] = useState({ w: 1280, h: 800 });
@@ -61,137 +63,33 @@ export default function Garden() {
   const [songCommandLocked, setSongCommandLocked] = useState(false);
   const [showOwner, setShowOwner] = useState(false);
 
-  const [showSongPrompt, setShowSongPrompt] = useState(false);
-  const [songName, setSongName] = useState('');
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [isSearchingSong, setIsSearchingSong] = useState(false);
-  const [currentVideoId, setCurrentVideoId] = useState('');
-  
-  // YouTube API state
-  const [ytApiReady, setYtApiReady] = useState(false);
-  const [isMuted, setIsMuted] = useState(false);
-  const ytPlayerRef = useRef<any>(null);
+  // YT UseEffect removed
 
   useEffect(() => {
-    if ((window as any).YT && (window as any).YT.Player) {
-      setYtApiReady(true);
-    } else {
-      const tag = document.createElement('script');
-      tag.src = 'https://www.youtube.com/iframe_api';
-      const firstScriptTag = document.getElementsByTagName('script')[0];
-      if (firstScriptTag && firstScriptTag.parentNode) {
-        firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
-      } else {
-        document.head.appendChild(tag);
-      }
-      
-      (window as any).onYouTubeIframeAPIReady = () => {
-        setYtApiReady(true);
-      };
-    }
+    const handleVoiceWake = () => {
+      setIsMicAwake(true);
+    };
+    
+    const handleVoiceSleep = () => {
+      setIsMicAwake(false);
+    };
+
+    window.addEventListener('voiceWake', handleVoiceWake);
+    window.addEventListener('voiceSleep', handleVoiceSleep);
+
+    return () => {
+      window.removeEventListener('voiceWake', handleVoiceWake);
+      window.removeEventListener('voiceSleep', handleVoiceSleep);
+    };
   }, []);
-
-  useEffect(() => {
-    if (ytApiReady && currentVideoId && isPlaying) {
-      const isDirectId = /^[a-zA-Z0-9_-]{11}$/.test(currentVideoId);
-      
-      if (!ytPlayerRef.current) {
-        const playerVars: any = {
-          autoplay: 1,
-          controls: 0,
-          disablekb: 1,
-          fs: 0,
-          origin: window.location.origin
-        };
-        
-        if (isDirectId) {
-          playerVars.loop = 1;
-          playerVars.playlist = currentVideoId;
-        } else {
-          playerVars.listType = 'search';
-          playerVars.list = currentVideoId;
-        }
-
-        ytPlayerRef.current = new (window as any).YT.Player('hidden-yt-player', {
-          height: '10',
-          width: '10',
-          videoId: isDirectId ? currentVideoId : undefined,
-          playerVars,
-          events: {
-            onReady: (event: any) => {
-              event.target.setVolume(50);
-              if (isMuted) {
-                event.target.mute();
-              }
-              event.target.playVideo();
-            },
-            onStateChange: (event: any) => {
-              if (event.data === 0) {
-                 event.target.playVideo();
-              }
-            },
-            onError: (event: any) => {
-              console.error("YT Player Error:", event.data);
-              if (!isDirectId) {
-                event.target.loadVideoById('2Vv-BfVoq4g');
-              }
-            }
-          }
-        });
-      } else {
-        if (isDirectId) {
-          ytPlayerRef.current.loadVideoById(currentVideoId);
-        } else {
-          ytPlayerRef.current.loadPlaylist({
-            list: currentVideoId,
-            listType: 'search'
-          });
-        }
-        if (isMuted) {
-          ytPlayerRef.current.mute();
-        } else {
-          ytPlayerRef.current.unMute();
-        }
-      }
-    }
-  }, [ytApiReady, currentVideoId, isPlaying]);
-
-  const toggleMute = () => {
-    if (ytPlayerRef.current) {
-      if (isMuted) {
-        ytPlayerRef.current.unMute();
-      } else {
-        ytPlayerRef.current.mute();
-      }
-      setIsMuted(!isMuted);
-    }
-  };
 
   // duckMusic removed to prevent audio stuttering
 
-  const handlePlaySong = async (queryOverride?: string | React.MouseEvent) => {
-    const rawQuery = typeof queryOverride === 'string' ? queryOverride : songName;
-    const query = rawQuery.trim() ? rawQuery : 'perfect ed sheeran';
-    setIsSearchingSong(true);
-    if (queryOverride) setSongName(queryOverride);
-    
-    // Check if the user pasted a direct YouTube URL
-    const ytMatch = query.match(/(?:youtu\.be\/|youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/);
-    if (ytMatch && ytMatch[1]) {
-      setCurrentVideoId(ytMatch[1]);
-    } else {
-      setCurrentVideoId(query);
-    }
-    
-    setIsSearchingSong(false);
-    setIsPlaying(true);
-    setShowSongPrompt(false);
-    setShowButton(true);
-  };
+  // handlePlaySong removed
 
   useEffect(() => {
-    // Show song prompt after flower animations complete (~8.5 seconds)
-    const t = setTimeout(() => setShowSongPrompt(true), 8500);
+    // Show the Enter button after flower animations complete (~8.5 seconds)
+    const t = setTimeout(() => setShowButton(true), 8500);
     return () => clearTimeout(t);
   }, []);
 
@@ -226,44 +124,12 @@ export default function Garden() {
     "restart the website": () => { window.location.reload(); },
     "owner": () => { setShowOwner(true); },
     "close owner": () => { setShowOwner(false); },
-    "lock the song change command": () => { setSongCommandLocked(true); },
-    "lock song change": () => { setSongCommandLocked(true); },
-    "unlock the song change command": () => { setSongCommandLocked(false); },
-    "unlock song command": () => { setSongCommandLocked(false); },
-    "unlock song change": () => { setSongCommandLocked(false); },
-    "unlock": () => { setSongCommandLocked(false); },
-    "play": (t) => { 
-      if (showSongPrompt && !isSearchingSong) {
-        handlePlaySong(t.replace("play", "").trim());
-      } else if (!songCommandLocked && !isSearchingSong && !showSongPrompt) {
-        const query = t.replace("play", "").trim();
-        if (query) handlePlaySong(query);
-      }
-    },
-    "change song": (t) => {
-      if (!songCommandLocked && !isSearchingSong) {
-        const query = t.replace("change song", "").replace("to", "").trim();
-        if (query) handlePlaySong(query);
-      }
-    },
-    "change the song": (t) => {
-      if (!songCommandLocked && !isSearchingSong) {
-        const query = t.replace("change the song", "").replace("to", "").trim();
-        if (query) handlePlaySong(query);
-      }
-    },
-    "continue": () => { if (showSongPrompt && !isSearchingSong) handlePlaySong(); },
     "enter": () => { if (showButton && !isStorming) handleEnterClick(); },
     "tap enter": () => { if (showButton && !isStorming) handleEnterClick(); },
     "male": () => { if (showGenderPrompt) handleGenderSelect('male'); },
     "boy": () => { if (showGenderPrompt) handleGenderSelect('male'); },
     "female": () => { if (showGenderPrompt) handleGenderSelect('female'); },
     "girl": () => { if (showGenderPrompt) handleGenderSelect('female'); },
-  }, (transcript, matched) => {
-    // If they just say a song name without "play"
-    if (!matched && showSongPrompt && !isSearchingSong) {
-      handlePlaySong(transcript);
-    }
   });
 
   return (
@@ -277,32 +143,7 @@ export default function Garden() {
     >
       <WindLines active={isStorming} />
 
-      {/* Hidden YouTube Player Container */}
-      <div className="fixed bottom-0 right-0 opacity-0 pointer-events-none z-[1]">
-        <div id="hidden-yt-player"></div>
-      </div>
-
-      {/* Floating Audio Controls */}
-      {isPlaying && currentVideoId && (
-        <div className="fixed bottom-6 right-6 z-[100] animate-[fadeIn_2s_ease-out_forwards]">
-          <button 
-            onClick={toggleMute}
-            className="w-12 h-12 flex items-center justify-center bg-black/40 backdrop-blur-md rounded-full border border-pink-500/50 text-white hover:bg-black/60 transition-all shadow-[0_0_15px_rgba(255,20,80,0.3)] hover:scale-110 active:scale-95"
-            title={isMuted ? "Unmute song" : "Mute song"}
-          >
-            {isMuted ? (
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-pink-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2" />
-              </svg>
-            ) : (
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-pink-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
-              </svg>
-            )}
-          </button>
-        </div>
-      )}
+      {/* UI Elements removed */}
 
       {/* Blackout overlay for the storm transition */}
       <motion.div 
@@ -408,45 +249,7 @@ export default function Garden() {
         )}
       </motion.div>
 
-      {/* Song Selection Prompt */}
-      {showSongPrompt && (
-        <motion.div 
-          className="absolute inset-0 z-[55] flex flex-col items-center justify-center pointer-events-auto bg-black/60 backdrop-blur-sm p-4"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 1.5 }}
-        >
-          <motion.div 
-             className="bg-[#2d0813]/90 border border-pink-500/30 p-6 md:p-10 rounded-3xl text-center shadow-[0_0_40px_rgba(255,20,80,0.4)] max-w-lg w-full"
-             initial={{ scale: 0.9, y: 20 }}
-             animate={{ scale: 1, y: 0 }}
-             transition={{ delay: 0.5, type: 'spring' }}
-          >
-            <h2 className="text-3xl md:text-5xl text-white font-serif mb-4" style={{ textShadow: '0 0 15px rgba(255, 100, 150, 0.5)' }}>
-              Your Favorite Song
-            </h2>
-            <p className="text-pink-200 mb-6 md:mb-8 font-serif text-base md:text-lg">
-              Tell me the name of your favorite song to play in our garden...
-            </p>
-            <input 
-              type="text" 
-              value={songName}
-              onChange={(e) => setSongName(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && handlePlaySong()}
-              placeholder="e.g. A song from SYN..."
-              className="w-full px-4 md:px-6 py-3 md:py-4 bg-black/50 border border-pink-500/50 rounded-xl text-white text-lg md:text-xl text-center placeholder-white/40 focus:outline-none focus:border-pink-400 mb-6 font-serif"
-            />
-            <button
-              onClick={handlePlaySong}
-              disabled={isSearchingSong}
-              className="px-6 md:px-8 py-3 md:py-4 w-full sm:w-auto bg-pink-600 hover:bg-pink-500 text-white font-serif text-lg md:text-xl rounded-xl transition-all hover:scale-105 active:scale-95 shadow-[0_0_20px_rgba(255,20,80,0.4)] disabled:opacity-50"
-            >
-              {isSearchingSong ? 'Finding Song...' : 'Play & Continue ❤️'}
-            </button>
-          </motion.div>
-        </motion.div>
-      )}
-
+      {/* Prompt removed */}
       {/* Trigger Button */}
       {showButton && !isStorming && (
         <div className="animate-[fadeIn_2s_ease-out_forwards]">

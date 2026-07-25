@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import Globe from 'react-globe.gl';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FinalScreen } from './FinalScreen';
+import { CameraHologram } from './CameraHologram';
 import { useVoiceCommand } from '@/hooks/useVoiceCommand';
 
 // Snow Particle Component
@@ -184,6 +185,7 @@ export function EarthDate() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitSuccess, setSubmitSuccess] = useState(false);
   const [showFinalScreen, setShowFinalScreen] = useState(false);
+  const [showCamera, setShowCamera] = useState(false);
 
   useEffect(() => {
     if (submitSuccess) {
@@ -301,6 +303,8 @@ export function EarthDate() {
   };
 
   useVoiceCommand({
+    "open camera": () => setShowCamera(true),
+    "camera kholo": () => setShowCamera(true),
     "my heart": () => handleLocationClick(markersData[0]),
     "paris": () => handleLocationClick(markersData[1]),
     "tokyo": () => handleLocationClick(markersData[2]),
@@ -539,6 +543,9 @@ export function EarthDate() {
       `}</style>
       
       {showFinalScreen && <FinalScreen />}
+      <AnimatePresence>
+        {showCamera && <CameraHologram onClose={() => setShowCamera(false)} />}
+      </AnimatePresence>
     </div>
   );
 }

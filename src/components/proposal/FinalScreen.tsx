@@ -1,5 +1,6 @@
-import React, { useEffect, useRef } from 'react';
-import { motion } from 'framer-motion';
+import React, { useEffect, useRef, useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { useVoiceCommand } from '@/hooks/useVoiceCommand';
 
 function StarryBackground() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -232,6 +233,23 @@ function ParticleText() {
 }
 
 export function FinalScreen() {
+  const [showHeartMessage, setShowHeartMessage] = useState(false);
+
+  const openHeart = () => {
+    setShowHeartMessage(true);
+  };
+
+  useVoiceCommand({
+    "tap my heart": openHeart,
+    "dil kholo": openHeart,
+    "my heart": openHeart,
+    "tap maldives": openHeart,
+    "maldives": openHeart,
+    "open heart": openHeart,
+    "click heart": openHeart,
+    "open my heart": openHeart
+  });
+
   return (
     <motion.div 
       className="fixed inset-0 z-[200] bg-[#030308] flex flex-col items-center justify-center overflow-hidden"
@@ -286,16 +304,35 @@ export function FinalScreen() {
             transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
           />
           {/* Beating Heart Icon */}
-          <motion.div
+          <motion.button
+            onClick={openHeart}
             animate={{ scale: [1, 1.15, 1] }}
             transition={{ duration: 1.2, repeat: Infinity, ease: "easeInOut" }}
-            className="relative z-10"
+            className="relative z-10 cursor-pointer outline-none"
           >
             <svg className="w-20 h-20 md:w-28 md:h-28 text-[#ff2a40] drop-shadow-[0_0_20px_rgba(255,42,64,0.8)]" fill="currentColor" viewBox="0 0 24 24">
               <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
             </svg>
-          </motion.div>
+          </motion.button>
         </motion.div>
+
+        <AnimatePresence>
+          {showHeartMessage && (
+            <motion.div
+              initial={{ opacity: 0, y: 20, scale: 0.8 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              transition={{ type: "spring", bounce: 0.5 }}
+              className="mt-8 md:mt-12 bg-white/10 backdrop-blur-md border border-white/20 p-6 md:p-8 rounded-3xl shadow-[0_0_30px_rgba(255,255,255,0.2)] z-40 relative"
+            >
+              <h3 className="text-2xl md:text-4xl font-serif text-white mb-2" style={{ textShadow: '0 0 10px rgba(0, 255, 255, 0.8)' }}>
+                Pack your bags... ✈️
+              </h3>
+              <p className="text-xl md:text-2xl text-pink-200 font-serif italic">
+                We are going to the Maldives! 🏝️❤️
+              </p>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </motion.div>
     </motion.div>
   );

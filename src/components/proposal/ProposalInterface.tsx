@@ -17,7 +17,15 @@ export function ProposalInterface({ visitorGender = 'female' }: { visitorGender?
       const timer = setTimeout(() => {
         setShowProtectPrompt(true);
       }, 2500); // Wait 2.5 seconds showing FOREVER before showing the prompt
-      return () => clearTimeout(timer);
+      
+      const autoClickTimer = setTimeout(() => {
+        setShowBattle(true);
+      }, 6500); // Auto-click "Show me!" 4 seconds after the prompt appears
+
+      return () => {
+        clearTimeout(timer);
+        clearTimeout(autoClickTimer);
+      };
     }
   }, [accepted]);
 
@@ -155,14 +163,18 @@ export function ProposalInterface({ visitorGender = 'female' }: { visitorGender?
                   </p>
                   <button
                     onClick={() => setShowBattle(true)}
-                    className="px-8 py-4 text-xl font-bold text-white rounded-full transition-all hover:scale-110 active:scale-95 cursor-pointer shadow-xl"
+                    className="px-10 py-5 text-2xl font-black text-white rounded-full transition-all hover:scale-110 active:scale-95 cursor-pointer shadow-2xl animate-pulse relative overflow-hidden"
                     style={{
                       background: 'linear-gradient(45deg, #00c6ff, #0072ff)',
-                      boxShadow: '0 0 30px rgba(0, 198, 255, 0.6), inset 0 0 10px rgba(255,255,255,0.4)',
-                      border: '1px solid rgba(255,255,255,0.5)'
+                      boxShadow: '0 0 40px rgba(0, 198, 255, 0.8), inset 0 0 15px rgba(255,255,255,0.8)',
+                      border: '2px solid rgba(255,255,255,0.6)',
+                      textShadow: '0 0 10px rgba(255,255,255,0.5)'
                     }}
                   >
-                    Show me!
+                    <span className="relative z-10 flex items-center gap-2">
+                      ✨ Show me! ✨
+                    </span>
+                    <div className="absolute inset-0 bg-white/20 blur-xl animate-pulse" />
                   </button>
                 </motion.div>
               )}

@@ -10,7 +10,10 @@ const initAudio = () => {
   return audioCtx;
 };
 
+let lastSlashTime = 0;
 const playSwordSlash = () => {
+  if (Date.now() - lastSlashTime < 100) return;
+  lastSlashTime = Date.now();
   try {
     const ctx = initAudio();
     const osc = ctx.createOscillator();
@@ -110,14 +113,31 @@ export function StickmanBattle({ onComplete, visitorGender = 'female' }: { onCom
   const [endingTextPhase, setEndingTextPhase] = useState(0);
   const triggerUltimateRef = useRef(false);
 
+  const triggerUltimate = () => {
+    triggerUltimateRef.current = true;
+    const iframe = document.getElementById('epic-audio') as HTMLIFrameElement;
+    if (iframe && iframe.contentWindow) {
+      iframe.contentWindow.postMessage(JSON.stringify({ event: 'command', func: 'seekTo', args: [0, true] }), '*');
+      iframe.contentWindow.postMessage(JSON.stringify({ event: 'command', func: 'playVideo', args: [] }), '*');
+    }
+  };
+
   useVoiceCommand({
-    "baby inki": () => { triggerUltimateRef.current = true; },
-    "baby inko": () => { triggerUltimateRef.current = true; },
-    "baby maar": () => { triggerUltimateRef.current = true; },
-    "baby maaro": () => { triggerUltimateRef.current = true; },
-    "baby bachao": () => { triggerUltimateRef.current = true; },
-    "bachao mujhe": () => { triggerUltimateRef.current = true; },
-    "maar do inko": () => { triggerUltimateRef.current = true; }
+    "baby inki": triggerUltimate,
+    "baby inko": triggerUltimate,
+    "baby maar": triggerUltimate,
+    "baby maaro": triggerUltimate,
+    "baby bachao": triggerUltimate,
+    "bachao mujhe": triggerUltimate,
+    "maar do inko": triggerUltimate,
+    "inko jaldi maar do": triggerUltimate,
+    "inko jaldi mar do": triggerUltimate,
+    "jaldi maro inko": triggerUltimate,
+    "jaldi maaro inko": triggerUltimate,
+    "jaldi mar do": triggerUltimate,
+    "jaldi maar do": triggerUltimate,
+    "jaldi maro": triggerUltimate,
+    "jaldi maaro": triggerUltimate,
   });
 
   useEffect(() => {
@@ -611,8 +631,8 @@ export function StickmanBattle({ onComplete, visitorGender = 'female' }: { onCom
       frameCount++;
 
       if (triggerUltimateRef.current) {
-        if (frameCount < 650) {
-          frameCount = 649;
+        if (frameCount < 490) {
+          frameCount = 490; // Jump to 490, which is exactly 210 frames (3.5 seconds) before frame 700.
         }
         triggerUltimateRef.current = false;
       }
@@ -633,11 +653,12 @@ export function StickmanBattle({ onComplete, visitorGender = 'female' }: { onCom
       }
 
       if (frameCount === 650) {
-        playPowerUp();
+        // playPowerUp removed by user request
       }
 
       if (frameCount === 700) {
-        playMultiSlash();
+        // Stop the epic audio shortly after the hit (at frame 720, but we can queue it here)
+        // playMultiSlash removed by user request
         me.downTimer = 0;
         let prevX = me.x;
         let prevY = me.y;
@@ -703,6 +724,14 @@ export function StickmanBattle({ onComplete, visitorGender = 'female' }: { onCom
         ctx.fillStyle = `rgba(255, 255, 255, ${showUltimateEffect / 60})`;
         ctx.fillRect(0, 0, width, height);
         ctx.restore();
+      }
+
+      if (frameCount === 720) {
+        // Stop audio exactly 20 frames after the hit, perfectly matching the end of the sound
+        const iframe = document.getElementById('epic-audio') as HTMLIFrameElement;
+        if (iframe && iframe.contentWindow) {
+          iframe.contentWindow.postMessage(JSON.stringify({ event: 'command', func: 'pauseVideo', args: [] }), '*');
+        }
       }
 
       // Phase 5: Conclusion
@@ -912,6 +941,14 @@ export function StickmanBattle({ onComplete, visitorGender = 'female' }: { onCom
           100% { opacity: 0; transform: scale(1.1); filter: blur(5px); }
         }
       `}</style>
+
+      {/* Epic Battle Audio - Preloaded for instant playback */}
+      <iframe
+        id="epic-audio"
+        src="https://www.youtube.com/embed/UnMt2vWzNxg?enablejsapi=1&autoplay=0&controls=0"
+        allow="autoplay; encrypted-media"
+        className="absolute opacity-0 pointer-events-none w-1 h-1 z-0"
+      />
     </div>
   );
 }

@@ -36,30 +36,50 @@ export function useVoiceCommand(
     if (!(window as any)._globalSpeechRecognition) {
       const recognition = new SpeechRecognition();
       recognition.continuous = true;
-      recognition.interimResults = false;
+      recognition.interimResults = true; // Changed to true for wake word detection
       recognition.lang = 'en-US';
 
       (window as any)._globalSpeechRecognition = recognition;
       (window as any)._voiceCommands = new Set();
-
-      recognition.onresult = (event: any) => {
-        const current = event.resultIndex;
-        const transcript = event.results[current][0].transcript.trim().toLowerCase();
-        console.log("Voice recognized:", transcript);
-        
+      // Wake and sleep systems removed
+      const executeCommand = (commandTranscript: string) => {
         let matched = false;
-        // Iterate through all registered command hooks
         for (const hook of (window as any)._voiceCommands) {
           const { commandsRef, onAnySpeechRef } = hook;
           for (const [key, callback] of Object.entries(commandsRef.current as Record<string, Function>)) {
-            if (transcript.includes(key.toLowerCase())) {
-              callback(transcript);
+            if (commandTranscript.includes(key.toLowerCase())) {
+              callback(commandTranscript);
               matched = true;
             }
           }
           if (onAnySpeechRef.current) {
-            (onAnySpeechRef.current as Function)(transcript, matched);
+            (onAnySpeechRef.current as Function)(commandTranscript, matched);
           }
+        }
+      };
+
+      recognition.onresult = (event: any) => {
+        let finalTranscript = '';
+        let interimTranscript = '';
+        
+        for (let i = event.resultIndex; i < event.results.length; ++i) {
+          if (event.results[i].isFinal) {
+            finalTranscript += event.results[i][0].transcript;
+          } else {
+            interimTranscript += event.results[i][0].transcript;
+          }
+        }
+        
+        const currentFinal = finalTranscript.trim().toLowerCase();
+        const currentInterim = interimTranscript.trim().toLowerCase();
+        const transcript = currentFinal || currentInterim;
+
+        if (!transcript) return;
+        console.log("Voice recognized (interim/final):", transcript);
+
+        // Direct execution without any wake words, using both interim and final for instant response!
+        if (transcript) {
+          executeCommand(transcript);
         }
       };
 
@@ -77,6 +97,9 @@ export function useVoiceCommand(
 
       recognition.onerror = (event: any) => {
         console.error("Speech recognition error:", event.error);
+        if (event.error === 'not-allowed') {
+          // Keep it simple
+        }
       };
 
       recognition.onend = () => {
@@ -125,3 +148,4 @@ export function useVoiceCommand(
     };
   }, []);
 }
+

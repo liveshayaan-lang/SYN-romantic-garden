@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { CMatrix } from './CMatrix';
 
 const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
-const NUM_TEXT_PARTICLES = isMobile ? 1200 : 2500;
+const NUM_TEXT_PARTICLES = isMobile ? 600 : 1200; // Significantly reduced for performance
 
 class Particle {
   x: number;
@@ -65,10 +65,8 @@ class Particle {
     ctx.beginPath();
     ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
     ctx.fillStyle = this.color;
-    ctx.shadowBlur = 15;
-    ctx.shadowColor = '#ff5e6c';
     ctx.fill();
-    ctx.shadowBlur = 0;
+    // shadowBlur removed for extreme performance optimization
   }
 
   setTarget(tx: number, ty: number) {
@@ -180,13 +178,14 @@ export function ParticleCountdown({ onComplete }: { onComplete?: () => void }) {
 
     render();
 
-    const getFontSize = (baseSize: string, mobileSize: string) => {
-      return isMobile ? mobileSize : baseSize;
+    const getFontSize = () => {
+      const isMobileSize = width < 768;
+      return isMobileSize ? `${Math.floor(width * 0.5)}px` : `${Math.floor(Math.min(width, height) * 0.4)}px`;
     };
 
-    const s1 = setTimeout(() => prepareParticlesForText('3', getFontSize('40vmin', '70vw'), false), 500);
-    const s2 = setTimeout(() => prepareParticlesForText('2', getFontSize('40vmin', '70vw'), true), 1500);
-    const s3 = setTimeout(() => prepareParticlesForText('1', getFontSize('40vmin', '70vw'), true), 2500);
+    const s1 = setTimeout(() => prepareParticlesForText('3', getFontSize(), false), 500);
+    const s2 = setTimeout(() => prepareParticlesForText('2', getFontSize(), true), 1500);
+    const s3 = setTimeout(() => prepareParticlesForText('1', getFontSize(), true), 2500);
     const s4 = setTimeout(() => scatterParticles(), 3500); 
     
     

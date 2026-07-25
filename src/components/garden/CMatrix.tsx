@@ -15,7 +15,7 @@ export function CMatrix() {
     canvas.height = height;
 
     const chars = 'ｱｲｳｴｵｶｷｸｹｺｻｼｽｾｿﾀﾁﾂﾃﾄﾅﾆﾇﾈﾉﾊﾋﾌﾍﾎﾏﾐﾑﾒﾓﾔﾕﾖﾗﾘﾙﾚﾛﾜﾝ0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
-    const fontSize = 12; // Smaller font size for more quantity
+    const fontSize = 10; // Smaller font size for MORE quantity
     const columns = Math.floor(width / fontSize);
     const drops: number[] = [];
     
@@ -44,19 +44,8 @@ export function CMatrix() {
 
       ctx.font = `${fontSize}px "Courier New", monospace`;
 
-      const cx = width / 2;
-      const cy = height / 2;
-      const avoidanceRadius = 300;
-
       const getRenderX = (origX: number, currY: number) => {
-          const dx = origX - cx;
-          const dy = currY - cy;
-          const dist = Math.sqrt(dx*dx + dy*dy);
-          if (dist < avoidanceRadius) {
-              // Create a smooth curve force
-              const force = Math.pow((avoidanceRadius - dist) / avoidanceRadius, 1.5);
-              return origX + (dx >= 0 ? 1 : -1) * force * 150;
-          }
+          // Removed avoidance logic so they merge over the countdown
           return origX;
       };
 
